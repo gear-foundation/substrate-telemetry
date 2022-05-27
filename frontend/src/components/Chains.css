@@ -78,6 +78,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
   color: #fff;
 }
 
+.Chains-logo .Icon {
+  width: 160px;
+  height: 41px;
+  line-height: 41px;
+  margin-right: 10px;
+}
+
 .Chains-node-count {
   padding: 0px;
   display: inline-block;

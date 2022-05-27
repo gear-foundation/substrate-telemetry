@@ -23,6 +23,7 @@ import { viewport } from '../utils';
 
 import githubIcon from '../icons/mark-github.svg';
 import listIcon from '../icons/kebab-horizontal.svg';
+import Logo from '../icons/logo.svg';
 import './Chains.css';
 
 export namespace Chains {
@@ -79,6 +80,13 @@ export class Chains extends React.Component<Chains.Props, {}> {
 
     return (
       <div className="Chains">
+        <a 
+          className="Chains-logo"
+          href="/"
+          title="Gear Telemetry"
+        >
+          <Icon src={Logo} />
+        </a>
         {subscribedChain}
         {renderedChains}
         <a
