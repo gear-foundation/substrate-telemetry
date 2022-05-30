@@ -80,11 +80,7 @@ export class Chains extends React.Component<Chains.Props, {}> {
 
     return (
       <div className="Chains">
-        <a 
-          className="Chains-logo"
-          href="/"
-          title="Gear Telemetry"
-        >
+        <a className="Chains-logo" href="/" title="Gear Telemetry">
           <Icon src={Logo} />
         </a>
         {subscribedChain}
