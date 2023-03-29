@@ -29,7 +29,7 @@ import {
   UploadColumn,
   DownloadColumn,
   StateCacheColumn,
-} from './components/List';
+} from './components';
 
 const CONNECTION_TIMEOUT_BASE = (1000 * 5) as Types.Milliseconds; // 5 seconds
 const CONNECTION_TIMEOUT_MAX = (1000 * 60 * 5) as Types.Milliseconds; // 5 minutes
@@ -70,6 +70,28 @@ export class Connection {
     return 'ws://127.0.0.1:8000/feed';
   }
 
+  private static getBlacklist(): string[] {
+    const ENV_BLACKLIST = 'BLACKLIST  ';
+
+    // If env_config.js is generated and loaded in, it'll set this variable.
+    // This is set up in the Dockerfile. Otherwise, we just connect to a
+    // default URL.
+    if (window.process_env?.[ENV_BLACKLIST]) {
+      return window.process_env[ENV_BLACKLIST] as string[];
+    }
+
+    return [
+      '0x6cf0c78d265512c4f4e7d8c046ef25795f163fe476a838b64e7dbf2cdc164593',
+      '0xca57341aa3262edc34d8f4fc0c557309ff0941a24c271ffe9c1370ce627d723a',
+      '0xd144f24baf0b991be22ea8dc7dd4540d9d1e971e6bf17b1770b9fc9c88272484',
+      '0x209bc5d3262cad676cd1fcd87a958a3d00c0176f8720231cbbb54a10f735d9bb',
+      '0x6f022bd353c56b3e441507e1173601fd9dc0fb7547e6a95bbaf9b21f311bcab6',
+      '0x990aa19cec6cde20aab79d798feb4b233a414a5a197483aa44c68c543f1b5806',
+      '0x70f04c10c85b57482a63514576e6fab6b0df4ddcfbfdf1da8f03dc3f59ba5439',
+      // '0x92ed36f0a4a26169cba7c6990d51055c76b6b89de268568615a041eebb619a0e',
+    ];
+  }
+
   private static async socket(): Promise<WebSocket> {
     let socket = await Connection.trySocket();
     let timeout = CONNECTION_TIMEOUT_BASE;
@@ -104,6 +126,7 @@ export class Connection {
         clean();
         resolve(null);
       }
+
       const socket = new WebSocket(Connection.address);
 
       socket.binaryType = 'arraybuffer';
@@ -318,7 +341,9 @@ export class Connection {
           if (chain) {
             chain.nodeCount = nodeCount;
           } else {
-            chains.set(genesisHash, { label, genesisHash, nodeCount });
+            if (!Connection.getBlacklist().includes(genesisHash)) {
+              chains.set(genesisHash, { label, genesisHash, nodeCount });
+            }
           }
 
           this.appUpdate({ chains });
@@ -554,4 +579,5 @@ function resettableTimeout(
     },
   };
 }
+
 type ResettableTimeout = ReturnType<typeof resettableTimeout>;
