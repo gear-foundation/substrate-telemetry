@@ -15,7 +15,7 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 use super::node::Node;
-use crate::feed_message::FeedMessageSerializer;
+use crate::feed_message::{ChainStats, FeedMessageSerializer};
 use crate::find_location;
 use common::node_message::Payload;
 use common::node_types::{Block, BlockHash, NodeDetails, Timestamp};
@@ -41,11 +41,11 @@ impl NodeId {
     }
 }
 
-/// Our state constains node and chain information
+/// Our state contains node and chain information
 pub struct State {
     chains: DenseMap<ChainId, Chain>,
 
-    // Find the right chain given various details.
+    /// Find the right chain given various details.
     chains_by_genesis_hash: HashMap<BlockHash, ChainId>,
 
     /// Chain labels that we do not want to allow connecting.
@@ -56,7 +56,7 @@ pub struct State {
     max_third_party_nodes: usize,
 }
 
-/// Adding a node to a chain leads to this node_idult
+/// Adding a node to a chain leads to this result.
 pub enum AddNodeResult<'a> {
     /// The chain is on the "deny list", so we can't add the node
     ChainOnDenyList,
@@ -218,6 +218,7 @@ impl State {
         NodeId(chain_id, chain_node_id): NodeId,
         payload: Payload,
         feed: &mut FeedMessageSerializer,
+        expose_node_details: bool,
     ) {
         let chain = match self.chains.get_mut(chain_id) {
             Some(chain) => chain,
@@ -227,7 +228,7 @@ impl State {
             }
         };
 
-        chain.update_node(chain_node_id, payload, feed)
+        chain.update_node(chain_node_id, payload, feed, expose_node_details)
     }
 
     /// Update the location for a node. Return `false` if the node was not found.
@@ -277,6 +278,9 @@ impl<'a> StateChain<'a> {
     pub fn nodes_slice(&self) -> &[Option<Node>] {
         self.chain.nodes_slice()
     }
+    pub fn stats(&self) -> &ChainStats {
+        self.chain.stats()
+    }
 }
 
 #[cfg(test)]
@@ -289,10 +293,15 @@ mod test {
             chain: chain.into(),
             name: name.into(),
             implementation: "Bar".into(),
+            target_arch: Some("x86_64".into()),
+            target_os: Some("linux".into()),
+            target_env: Some("env".into()),
             version: "0.1".into(),
             validator: None,
             network_id: NetworkId::new(),
             startup_time: None,
+            sysinfo: None,
+            ip: None,
         }
     }
 

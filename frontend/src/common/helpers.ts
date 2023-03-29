@@ -1,5 +1,5 @@
 // Source code for the Substrate Telemetry Server.
-// Copyright (C) 2021 Parity Technologies (UK) Ltd.
+// Copyright (C) 2023 Parity Technologies (UK) Ltd.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -45,14 +45,12 @@ export type Maybe<T> = T | null | undefined;
  * Asynchronous sleep
  */
 export function sleep(time: Milliseconds): Promise<void> {
-  return new Promise<void>((resolve, _reject) => {
+  return new Promise<void>((resolve) => {
     setTimeout(() => resolve(), time);
   });
 }
 
 export const timestamp = Date.now as () => Timestamp;
-
-export function noop() {}
 
 /**
  * Keep track of last N numbers pushed onto internal stack.

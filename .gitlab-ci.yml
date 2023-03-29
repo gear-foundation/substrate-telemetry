@@ -29,12 +29,6 @@ variables:
   FORCE_DEPLOY:               ""        # boolean: true or false - triggers the deploy-production stage
   FORCE_DOCKER_TAG:           ""        # choose an existing docker tag to be deployed (e.g. v1.2.3)
 
-  # Vault variables (Optional)
-  VAULT_SERVER_URL:           "https://vault.parity-mgmt-vault.parity.io"
-  VAULT_AUTH_PATH:            "gitlab-parity-io-jwt"
-  VAULT_AUTH_ROLE:            "cicd_gitlab_parity_${CI_PROJECT_NAME}"
-
-
 default:
   before_script:
     - |-
@@ -56,23 +50,15 @@ default:
 
 stages:
   - build
-  - deploy-staging
+  - deploy-commit-to-staging
+  - deploy-master-to-staging
   - deploy-production
 
 
 # Pipeline Job Templates:
-.vault-secrets:           &vault-secrets
-  secrets:
-    DOCKER_HUB_USER:
-      vault:              cicd/gitlab/parity/DOCKER_HUB_USER@kv
-      file:               false
-    DOCKER_HUB_PASS:
-      vault:              cicd/gitlab/parity/DOCKER_HUB_PASS@kv
-      file:               false
-
 .dockerize:               &dockerize
   stage:                  build
-  image:                  quay.io/buildah/stable
+  image:                  quay.io/buildah/stable:v1.27
   script:
     - |-
       echo building "$CONTAINER_REPO:$DOCKER_IMAGE_TAG"
@@ -86,8 +72,8 @@ stages:
         --format=docker \
         --tag "$CONTAINER_REPO:$DOCKER_IMAGE_TAG" "$DOCKERFILE_DIRECTORY"
       fi
-    - echo ${DOCKER_HUB_PASS} |
-        buildah login --username ${DOCKER_HUB_USER} --password-stdin docker.io
+    - echo ${Docker_Hub_Pass_Parity} |
+        buildah login --username ${Docker_Hub_User_Parity} --password-stdin docker.io
     - |-
       echo pushing "$CONTAINER_REPO:$DOCKER_IMAGE_TAG"
       if [[ $BUILD_LATEST_IMAGE ]]; then
@@ -103,6 +89,25 @@ stages:
       when: always
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
       when: always
+  tags:
+    - kubernetes-parity-build
+
+.publish-docker-image-description:
+  stage:                  build
+  image:                  paritytech/dockerhub-description
+  before_script:
+    - echo
+  variables:
+    DOCKERHUB_REPOSITORY: parity/substrate-telemetry-$PRODUCT
+    DOCKER_USERNAME:      $Docker_Hub_User_Parity
+    DOCKER_PASSWORD:      $Docker_Hub_Pass_Parity
+    README_FILEPATH:      $CI_PROJECT_DIR/$PRODUCT/Dockerfile.README.md
+  rules:
+  - if: $CI_COMMIT_REF_NAME == "master"
+    changes:
+    - $PRODUCT/Dockerfile.README.md
+  script:
+    - cd / && sh entrypoint.sh
   tags:
     - kubernetes-parity-build
 
@@ -148,20 +153,42 @@ build-backend:
     CONTAINER_REPO:       "docker.io/parity/substrate-telemetry-backend"
     DOCKERFILE_DIRECTORY: "./backend/"
   <<:                     *dockerize
-  <<:                     *vault-secrets
 
 build-frontend:
   variables:
     CONTAINER_REPO:       "docker.io/parity/substrate-telemetry-frontend"
     DOCKERFILE_DIRECTORY: "./frontend/"
   <<:                     *dockerize
-  <<:                     *vault-secrets
 
-deploy-staging:
+publish-backend-docker-image-description:
+  extends:                .publish-docker-image-description
+  variables:
+    PRODUCT:              backend
+    SHORT_DESCRIPTION:    "substrate-backend Docker Image."
+
+publish-frontend-docker-image-description:
+  extends:                .publish-docker-image-description
+  variables:
+    PRODUCT:              frontend
+    SHORT_DESCRIPTION:    "substrate-frontend Docker Image."
+
+# Manually build the docker images and deploy some commit to staging.
+deploy-commit-to-staging:
   variables:
     CONTAINER_REPO_BACKEND:  "docker.io/parity/substrate-telemetry-backend"
     CONTAINER_REPO_FRONTEND: "docker.io/parity/substrate-telemetry-frontend"
-  stage:                  deploy-staging
+  stage:                  deploy-commit-to-staging
+  <<:                     *deploy
+  environment:
+    name:                 parity-stg
+  when: manual
+
+# Autoamtically deploy `master` branch or tag like `v1.0` to staging
+deploy-master-to-staging:
+  variables:
+    CONTAINER_REPO_BACKEND:  "docker.io/parity/substrate-telemetry-backend"
+    CONTAINER_REPO_FRONTEND: "docker.io/parity/substrate-telemetry-frontend"
+  stage:                  deploy-master-to-staging
   <<:                     *deploy
   environment:
     name:                 parity-stg
@@ -169,6 +196,7 @@ deploy-staging:
     - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+.*$/'       # i.e. v1.0, v2.1rc1
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
 
+# Manually deploy a tag like `v1.0` to production
 deploy-production:
   variables:
     CONTAINER_REPO_BACKEND:  "docker.io/parity/substrate-telemetry-backend"

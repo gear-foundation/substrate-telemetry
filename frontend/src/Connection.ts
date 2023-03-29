@@ -1,5 +1,5 @@
 // Source code for the Substrate Telemetry Server.
-// Copyright (C) 2021 Parity Technologies (UK) Ltd.
+// Copyright (C) 2023 Parity Technologies (UK) Ltd.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -56,19 +56,18 @@ export class Connection {
   private static getAddress(): string {
     const ENV_URL = 'SUBSTRATE_TELEMETRY_URL';
 
-    if (process.env && process.env[ENV_URL]) {
-      return process.env[ENV_URL] as string;
-    }
-
-    if (window.process_env && window.process_env[ENV_URL]) {
-      return window.process_env[ENV_URL];
+    // If env_config.js is generated and loaded in, it'll set this variable.
+    // This is set up in the Dockerfile. Otherwise, we just connect to a
+    // default URL.
+    if (window.process_env?.[ENV_URL]) {
+      return window.process_env[ENV_URL] as string;
     }
 
     if (window.location.protocol === 'https:') {
       return `wss://${window.location.hostname}/feed/`;
     }
 
-    return `ws://127.0.0.1:8000/feed`;
+    return 'ws://127.0.0.1:8000/feed';
   }
 
   private static async socket(): Promise<WebSocket> {
@@ -89,7 +88,7 @@ export class Connection {
   }
 
   private static async trySocket(): Promise<Maybe<WebSocket>> {
-    return new Promise<Maybe<WebSocket>>((resolve, _) => {
+    return new Promise<Maybe<WebSocket>>((resolve) => {
       function clean() {
         socket.removeEventListener('open', onSuccess);
         socket.removeEventListener('close', onFailure);
@@ -362,6 +361,11 @@ export class Connection {
           break;
         }
 
+        case ACTIONS.ChainStatsUpdate: {
+          this.appUpdate({ chainStats: message.payload });
+          break;
+        }
+
         default: {
           break;
         }
@@ -464,7 +468,8 @@ export class Connection {
     let data: FeedMessage.Data;
 
     if (typeof event.data === 'string') {
-      data = (event.data as any) as FeedMessage.Data;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data = event.data as any as FeedMessage.Data;
     } else {
       const u8aData = new Uint8Array(event.data);
 
@@ -475,7 +480,8 @@ export class Connection {
 
       const str = Connection.utf8decoder.decode(event.data);
 
-      data = (str as any) as FeedMessage.Data;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data = str as any as FeedMessage.Data;
     }
 
     this.handleMessages(FeedMessage.deserialize(data));

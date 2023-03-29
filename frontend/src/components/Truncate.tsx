@@ -1,5 +1,5 @@
 // Source code for the Substrate Telemetry Server.
-// Copyright (C) 2021 Parity Technologies (UK) Ltd.
+// Copyright (C) 2023 Parity Technologies (UK) Ltd.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -16,15 +16,13 @@
 
 import * as React from 'react';
 
-export namespace Truncate {
-  export interface Props {
-    text: string;
-    chars?: number;
-  }
+interface TruncateProps {
+  text: string;
+  chars?: number;
 }
 
-export class Truncate extends React.Component<Truncate.Props, {}> {
-  public shouldComponentUpdate(nextProps: Truncate.Props): boolean {
+export class Truncate extends React.Component<TruncateProps> {
+  public shouldComponentUpdate(nextProps: TruncateProps): boolean {
     return this.props.text !== nextProps.text;
   }
 

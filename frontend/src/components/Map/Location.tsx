@@ -1,5 +1,5 @@
 // Source code for the Substrate Telemetry Server.
-// Copyright (C) 2021 Parity Technologies (UK) Ltd.
+// Copyright (C) 2023 Parity Technologies (UK) Ltd.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -36,27 +36,25 @@ import lastTimeIcon from '../../icons/watch.svg';
 
 import './Location.css';
 
-export namespace Location {
-  export type Quarter = 0 | 1 | 2 | 3;
+export type LocationQuarter = 0 | 1 | 2 | 3;
 
-  export interface Props {
-    node: Node;
-    position: Position;
-    focused: boolean;
-  }
-
-  export interface Position {
-    left: number;
-    top: number;
-    quarter: Quarter;
-  }
-
-  export interface State {
-    hover: boolean;
-  }
+interface LocationProps {
+  node: Node;
+  position: LocationPosition;
+  focused: boolean;
 }
 
-export class Location extends React.Component<Location.Props, Location.State> {
+export interface LocationPosition {
+  left: number;
+  top: number;
+  quarter: LocationQuarter;
+}
+
+interface LocationState {
+  hover: boolean;
+}
+
+export class Location extends React.Component<LocationProps, LocationState> {
   public readonly state = { hover: false };
 
   public render() {

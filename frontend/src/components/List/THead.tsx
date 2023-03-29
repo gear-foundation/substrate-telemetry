@@ -1,5 +1,5 @@
 // Source code for the Substrate Telemetry Server.
-// Copyright (C) 2021 Parity Technologies (UK) Ltd.
+// Copyright (C) 2023 Parity Technologies (UK) Ltd.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,23 +21,21 @@ import { Persistent } from '../../persist';
 
 import './THead.css';
 
-export namespace THead {
-  export interface Props {
-    columns: Column[];
-    sortBy: Persistent<Maybe<number>>;
-  }
+interface THeadProps {
+  columns: Column[];
+  sortBy: Persistent<Maybe<number>>;
 }
 
-export class THead extends React.Component<THead.Props, {}> {
+export class THead extends React.Component<THeadProps> {
   private sortBy: Maybe<number>;
 
-  constructor(props: THead.Props) {
+  constructor(props: THeadProps) {
     super(props);
 
     this.sortBy = props.sortBy.get();
   }
 
-  public shouldComponentUpdate(nextProps: THead.Props) {
+  public shouldComponentUpdate(nextProps: THeadProps) {
     return this.sortBy !== nextProps.sortBy.get();
   }
 

@@ -1,5 +1,5 @@
 // Source code for the Substrate Telemetry Server.
-// Copyright (C) 2021 Parity Technologies (UK) Ltd.
+// Copyright (C) 2023 Parity Technologies (UK) Ltd.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
 import * as React from 'react';
 import { Types, Maybe } from '../../common';
 import { formatNumber, secondsWithPrecision } from '../../utils';
-import { Tab, Chain } from './';
+import { Tab, ChainDisplay } from './';
 import { Tile, Ago } from '../';
 
 import blockIcon from '../../icons/cube.svg';
@@ -27,23 +27,21 @@ import lastTimeIcon from '../../icons/watch.svg';
 import listIcon from '../../icons/list-alt-regular.svg';
 import worldIcon from '../../icons/location.svg';
 import settingsIcon from '../../icons/settings.svg';
-import consensusIcon from '../../icons/cube-alt.svg';
+import statsIcon from '../../icons/graph.svg';
 
 import './Header.css';
 
-export namespace Header {
-  export interface Props {
-    best: Types.BlockNumber;
-    finalized: Types.BlockNumber;
-    blockTimestamp: Types.Timestamp;
-    blockAverage: Maybe<Types.Milliseconds>;
-    currentTab: Chain.Display;
-    setDisplay: (display: Chain.Display) => void;
-  }
+interface HeaderProps {
+  best: Types.BlockNumber;
+  finalized: Types.BlockNumber;
+  blockTimestamp: Types.Timestamp;
+  blockAverage: Maybe<Types.Milliseconds>;
+  currentTab: ChainDisplay;
+  setDisplay: (display: ChainDisplay) => void;
 }
 
-export class Header extends React.Component<Header.Props, {}> {
-  public shouldComponentUpdate(nextProps: Header.Props) {
+export class Header extends React.Component<HeaderProps> {
+  public shouldComponentUpdate(nextProps: HeaderProps) {
     return (
       this.props.best !== nextProps.best ||
       this.props.finalized !== nextProps.finalized ||
@@ -87,6 +85,14 @@ export class Header extends React.Component<Header.Props, {}> {
             label="Map"
             display="map"
             tab="map"
+            current={currentTab}
+            setDisplay={setDisplay}
+          />
+          <Tab
+            icon={statsIcon}
+            label="Stats"
+            display="stats"
+            tab="stats"
             current={currentTab}
             setDisplay={setDisplay}
           />

@@ -76,7 +76,7 @@ where
         );
     }
 
-    // Just a little ceremony we need to go to to return the correct response key:
+    // Just a little ceremony to return the correct response key:
     let mut accept_key_buf = [0; 32];
     let accept_key = generate_websocket_accept_key(key.as_bytes(), &mut accept_key_buf);
 
@@ -134,7 +134,10 @@ fn generate_websocket_accept_key<'a>(key: &[u8], buf: &'a mut [u8; 32]) -> &'a [
     digest.update(KEY);
     let d = digest.finalize();
 
-    let n = base64::encode_config_slice(&d, base64::STANDARD, buf);
+    use base64::{engine::general_purpose, Engine as _};
+    let n = general_purpose::STANDARD
+        .encode_slice(&d, buf)
+        .expect("Sha1 must fit into [u8; 32]");
     &buf[..n]
 }
 

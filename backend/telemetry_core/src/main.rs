@@ -82,6 +82,10 @@ struct Opts {
     /// How many nodes from third party chains are allowed to connect before we prevent connections from them.
     #[structopt(long, default_value = "5000")]
     max_third_party_nodes: usize,
+    /// Flag to expose the node's details (IP address, SysInfo, HwBench) of all connected
+    /// nodes to the feed subscribers.
+    #[structopt(long)]
+    pub expose_node_details: bool,
 }
 
 fn main() {
@@ -132,6 +136,7 @@ async fn start_server(num_aggregators: usize, opts: Opts) -> anyhow::Result<()> 
             max_queue_len: aggregator_queue_len,
             denylist: opts.denylist,
             max_third_party_nodes: opts.max_third_party_nodes,
+            expose_node_details: opts.expose_node_details,
         },
     )
     .await?;
@@ -247,10 +252,7 @@ where
                 break;
             }
             if let Err(e) = msg_info {
-                log::error!(
-                    "Shutting down websocket connection: Failed to receive data: {}",
-                    e
-                );
+                log::error!("Shutting down websocket connection: Failed to receive data: {e}");
                 break;
             }
 
@@ -258,10 +260,7 @@ where
                 match bincode::options().deserialize(&bytes) {
                     Ok(msg) => msg,
                     Err(e) => {
-                        log::error!(
-                            "Failed to deserialize message from shard; booting it: {}",
-                            e
-                        );
+                        log::error!("Failed to deserialize message from shard; booting it: {e}");
                         break;
                     }
                 };
@@ -288,7 +287,7 @@ where
             };
 
             if let Err(e) = tx_to_aggregator.send(aggregator_msg).await {
-                log::error!("Failed to send message to aggregator; closing shard: {}", e);
+                log::error!("Failed to send message to aggregator; closing shard: {e}");
                 break;
             }
         }
@@ -321,13 +320,10 @@ where
                 .expect("message to shard should serialize");
 
             if let Err(e) = ws_send.send_binary(bytes).await {
-                log::error!("Failed to send message to aggregator; closing shard: {}", e)
+                log::error!("Failed to send message to aggregator; closing shard: {e}")
             }
             if let Err(e) = ws_send.flush().await {
-                log::error!(
-                    "Failed to flush message to aggregator; closing shard: {}",
-                    e
-                )
+                log::error!("Failed to flush message to aggregator; closing shard: {e}")
             }
         }
 
@@ -370,7 +366,7 @@ where
         channel: tx_to_feed_conn,
     };
     if let Err(e) = tx_to_aggregator.send(init_msg).await {
-        log::error!("Error sending message to aggregator: {}", e);
+        log::error!("Error sending message to aggregator: {e}");
         return (tx_to_aggregator, ws_send);
     }
 
@@ -395,10 +391,7 @@ where
                 break;
             }
             if let Err(e) = msg_info {
-                log::error!(
-                    "Shutting down websocket connection: Failed to receive data: {}",
-                    e
-                );
+                log::error!("Shutting down websocket connection: Failed to receive data: {e}");
                 break;
             }
 
@@ -412,16 +405,12 @@ where
             let cmd = match FromFeedWebsocket::from_str(&text) {
                 Ok(cmd) => cmd,
                 Err(e) => {
-                    log::warn!(
-                        "Ignoring invalid command '{}' from the frontend: {}",
-                        text,
-                        e
-                    );
+                    log::warn!("Ignoring invalid command '{text}' from the frontend: {e}");
                     continue;
                 }
             };
             if let Err(e) = tx_to_aggregator.send(cmd).await {
-                log::error!("Failed to send message to aggregator; closing feed: {}", e);
+                log::error!("Failed to send message to aggregator; closing feed: {e}");
                 break;
             }
         }
@@ -460,23 +449,30 @@ where
                     .await
                 {
                     Err(_) => {
-                        log::warn!("Closing feed websocket that was too slow to keep up (too slow to send messages)");
+                        log::debug!("Closing feed websocket that was too slow to keep up (too slow to send messages)");
+                        break 'outer;
+                    }
+                    Ok(Err(soketto::connection::Error::Closed)) => {
                         break 'outer;
                     }
                     Ok(Err(e)) => {
-                        log::warn!("Closing feed websocket due to error sending data: {}", e);
+                        log::debug!("Closing feed websocket due to error sending data: {}", e);
                         break 'outer;
                     }
                     Ok(_) => {}
                 }
             }
+
             match tokio::time::timeout_at(message_send_deadline, ws_send.flush()).await {
                 Err(_) => {
-                    log::warn!("Closing feed websocket that was too slow to keep up (too slow to flush messages)");
+                    log::debug!("Closing feed websocket that was too slow to keep up (too slow to flush messages)");
+                    break;
+                }
+                Ok(Err(soketto::connection::Error::Closed)) => {
                     break;
                 }
                 Ok(Err(e)) => {
-                    log::warn!("Closing feed websocket due to error flushing data: {}", e);
+                    log::debug!("Closing feed websocket due to error flushing data: {}", e);
                     break;
                 }
                 Ok(_) => {}

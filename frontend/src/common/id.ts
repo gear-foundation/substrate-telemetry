@@ -1,5 +1,5 @@
 // Source code for the Substrate Telemetry Server.
-// Copyright (C) 2021 Parity Technologies (UK) Ltd.
+// Copyright (C) 2023 Parity Technologies (UK) Ltd.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@ export type Id<T> = Opaque<number, T>;
 /**
  * Higher order function producing new auto-incremented `Id`s.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function idGenerator<I extends Id<any>>(): () => I {
   let current = 0;
 

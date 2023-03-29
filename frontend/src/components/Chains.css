@@ -1,6 +1,6 @@
 /*
 Source code for the Substrate Telemetry Server.
-Copyright (C) 2021 Parity Technologies (UK) Ltd.
+Copyright (C) 2023 Parity Technologies (UK) Ltd.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -26,11 +26,16 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 }
 
 .Chains-extra-subscribed-chain {
-  position:  absolute;
+  position: absolute;
   right: 80px;
   top: 0px;
   background: #2bd071;
-  background: linear-gradient(90deg, rgba(0,0,0,0) 0px, #2bd071 30px, #2bd071 100%);
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0) 0px,
+    #2bd071 30px,
+    #2bd071 100%
+  );
   z-index: 1;
   padding-left: 34px;
 }

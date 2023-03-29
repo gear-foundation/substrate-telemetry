@@ -1,5 +1,5 @@
 // Source code for the Substrate Telemetry Server.
-// Copyright (C) 2021 Parity Technologies (UK) Ltd.
+// Copyright (C) 2023 Parity Technologies (UK) Ltd.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -29,25 +29,18 @@ const ROW_MARGIN = 5;
 
 import './List.css';
 
-export namespace List {
-  export interface Props {
-    appState: Readonly<AppState>;
-    appUpdate: AppUpdate;
-    pins: PersistentSet<Types.NodeName>;
-    sortBy: Persistent<Maybe<number>>;
-  }
-
-  export interface State {
-    filter: Maybe<(node: Node) => boolean>;
-    viewportHeight: number;
-  }
+interface ListProps {
+  appState: Readonly<AppState>;
+  appUpdate: AppUpdate;
+  pins: PersistentSet<Types.NodeName>;
+  sortBy: Persistent<Maybe<number>>;
 }
 
 // Helper for readability, used as `key` prop for each `Row`
 // of the `List`, so that we can maximize re-using DOM elements.
 type Key = number;
 
-export class List extends React.Component<List.Props, {}> {
+export class List extends React.Component<ListProps> {
   public state = {
     filter: null,
     viewportHeight: viewport().height,

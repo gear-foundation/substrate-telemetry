@@ -1,5 +1,5 @@
 // Source code for the Substrate Telemetry Server.
-// Copyright (C) 2021 Parity Technologies (UK) Ltd.
+// Copyright (C) 2023 Parity Technologies (UK) Ltd.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -109,9 +109,7 @@ export function sortedIndexOf<T>(
   return -1;
 }
 
-export namespace SortedCollection {
-  export type StateRef = Opaque<number, 'SortedCollection.StateRef'>;
-}
+type StateRef = Opaque<number, 'SortedCollection.StateRef'>;
 
 interface Focus {
   start: number;
@@ -268,12 +266,12 @@ export class SortedCollection<Item extends { id: number }> {
   }
 
   // Get the reference to current ordering state of focused items.
-  public get ref(): SortedCollection.StateRef {
-    return this.changeRef as SortedCollection.StateRef;
+  public get ref(): StateRef {
+    return this.changeRef as StateRef;
   }
 
   // Check if order of focused items has changed since obtaining a `ref`.
-  public hasChangedSince(ref: SortedCollection.StateRef): boolean {
+  public hasChangedSince(ref: StateRef): boolean {
     return this.changeRef > ref;
   }
 }

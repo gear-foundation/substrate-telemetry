@@ -1,5 +1,5 @@
 // Source code for the Substrate Telemetry Server.
-// Copyright (C) 2021 Parity Technologies (UK) Ltd.
+// Copyright (C) 2023 Parity Technologies (UK) Ltd.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@ export abstract class Stringified<T> {
   public __PHANTOM__: T;
 }
 
-export const parse = (JSON.parse as any) as <T>(val: Stringified<T>) => T;
-export const stringify = (JSON.stringify as any) as <T>(
-  val: T
-) => Stringified<T>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const parse = JSON.parse as any as <T>(val: Stringified<T>) => T;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const stringify = JSON.stringify as any as <T>(val: T) => Stringified<T>;

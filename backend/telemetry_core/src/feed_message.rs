@@ -45,7 +45,7 @@ where
 }
 
 pub struct FeedMessageSerializer {
-    /// Current buffer,
+    /// Current buffer.
     buffer: Vec<u8>,
 }
 
@@ -122,6 +122,7 @@ actions! {
     // We maintain existing IDs for backward compatibility.
     20: StaleNode,
     21: NodeIOUpdate<'_>,
+    22: ChainStatsUpdate<'_>,
 }
 
 #[derive(Serialize)]
@@ -133,7 +134,7 @@ pub struct BestBlock(pub BlockNumber, pub Timestamp, pub Option<u64>);
 #[derive(Serialize)]
 pub struct BestFinalized(pub BlockNumber, pub BlockHash);
 
-pub struct AddedNode<'a>(pub FeedNodeId, pub &'a Node);
+pub struct AddedNode<'a>(pub FeedNodeId, pub &'a Node, pub bool);
 
 #[derive(Serialize)]
 pub struct RemovedNode(pub FeedNodeId);
@@ -179,15 +180,26 @@ pub struct StaleNode(pub FeedNodeId);
 
 impl FeedMessageWrite for AddedNode<'_> {
     fn write_to_feed(&self, ser: &mut FeedMessageSerializer) {
-        let AddedNode(nid, node) = self;
+        let AddedNode(nid, node, expose_node_details) = self;
 
         let details = node.details();
+        // Hide the ip, sysinfo and hwbench if the `expose_node_details` flag was not specified.
+        let node_hwbench = node.hwbench();
+        let (ip, sys_info, hwbench) = if *expose_node_details {
+            (&details.ip, &details.sysinfo, &node_hwbench)
+        } else {
+            (&None, &None, &None)
+        };
+
         let details = (
             &details.name,
             &details.implementation,
             &details.version,
             &details.validator,
             &details.network_id,
+            &ip,
+            &sys_info,
+            &hwbench,
         );
 
         ser.write(&(
@@ -201,4 +213,31 @@ impl FeedMessageWrite for AddedNode<'_> {
             &node.startup_time(),
         ));
     }
+}
+
+#[derive(Serialize)]
+pub struct ChainStatsUpdate<'a>(pub &'a ChainStats);
+
+#[derive(Serialize, PartialEq, Eq, Default)]
+pub struct Ranking<K> {
+    pub list: Vec<(K, u64)>,
+    pub other: u64,
+    pub unknown: u64,
+}
+
+#[derive(Serialize, PartialEq, Eq, Default)]
+pub struct ChainStats {
+    pub version: Ranking<String>,
+    pub target_os: Ranking<String>,
+    pub target_arch: Ranking<String>,
+    pub cpu: Ranking<String>,
+    pub memory: Ranking<(u32, Option<u32>)>,
+    pub core_count: Ranking<u32>,
+    pub linux_kernel: Ranking<String>,
+    pub linux_distro: Ranking<String>,
+    pub is_virtual_machine: Ranking<bool>,
+    pub cpu_hashrate_score: Ranking<(u32, Option<u32>)>,
+    pub memory_memcpy_score: Ranking<(u32, Option<u32>)>,
+    pub disk_sequential_write_score: Ranking<(u32, Option<u32>)>,
+    pub disk_random_write_score: Ranking<(u32, Option<u32>)>,
 }

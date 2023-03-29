@@ -1,5 +1,5 @@
 // Source code for the Substrate Telemetry Server.
-// Copyright (C) 2021 Parity Technologies (UK) Ltd.
+// Copyright (C) 2023 Parity Technologies (UK) Ltd.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,15 +18,13 @@ import * as React from 'react';
 import './Tile.css';
 import { Icon } from './Icon';
 
-export namespace Tile {
-  export interface Props {
-    title: string;
-    icon: string;
-    children?: React.ReactNode;
-  }
+interface TileProps {
+  title: string;
+  icon: string;
+  children?: React.ReactNode;
 }
 
-export function Tile(props: Tile.Props) {
+export function Tile(props: TileProps) {
   return (
     <div className="Tile">
       <Icon src={props.icon} />

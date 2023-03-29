@@ -1,5 +1,5 @@
 // Source code for the Substrate Telemetry Server.
-// Copyright (C) 2021 Parity Technologies (UK) Ltd.
+// Copyright (C) 2023 Parity Technologies (UK) Ltd.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@ export * from './Chain';
 export * from './List';
 export * from './Map';
 export * from './Settings';
+export * from './Stats';
 export * from './Icon';
 export * from './Tile';
 export * from './Ago';

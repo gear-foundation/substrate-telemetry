@@ -19,7 +19,7 @@ use crate::find_location::find_location;
 use crate::state::NodeId;
 use common::id_type;
 use futures::{future, Sink, SinkExt};
-use std::net::Ipv4Addr;
+use std::net::IpAddr;
 use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
 
@@ -44,6 +44,9 @@ pub struct AggregatorOpts {
     /// How many nodes from third party chains are allowed to connect
     /// before we prevent connections from them.
     pub max_third_party_nodes: usize,
+    /// Flag to expose the node's details (IP address, SysInfo, HwBench) of all connected
+    /// nodes to the feed subscribers.
+    pub expose_node_details: bool,
 }
 
 struct AggregatorInternal {
@@ -76,9 +79,7 @@ impl Aggregator {
         tokio::spawn(Aggregator::handle_messages(
             rx_from_external,
             tx_to_locator,
-            opts.max_queue_len,
-            opts.denylist,
-            opts.max_third_party_nodes,
+            opts,
         ));
 
         // Return a handle to our aggregator:
@@ -94,19 +95,12 @@ impl Aggregator {
     /// any more, this task will gracefully end.
     async fn handle_messages(
         rx_from_external: flume::Receiver<inner_loop::ToAggregator>,
-        tx_to_aggregator: flume::Sender<(NodeId, Ipv4Addr)>,
-        max_queue_len: usize,
-        denylist: Vec<String>,
-        max_third_party_nodes: usize,
+        tx_to_aggregator: flume::Sender<(NodeId, IpAddr)>,
+        opts: AggregatorOpts,
     ) {
-        inner_loop::InnerLoop::new(
-            tx_to_aggregator,
-            denylist,
-            max_queue_len,
-            max_third_party_nodes,
-        )
-        .handle(rx_from_external)
-        .await;
+        inner_loop::InnerLoop::new(tx_to_aggregator, opts)
+            .handle(rx_from_external)
+            .await;
     }
 
     /// Gather metrics from our aggregator loop

@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-//! This is the internal represenation of telemetry messages sent from nodes.
+//! This is the internal representation of telemetry messages sent from nodes.
 //! There is a separate JSON representation of these types, because internally we want to be
-//! able to serialize these messages to bincode, and various serde attribtues aren't compatible
+//! able to serialize these messages to bincode, and various serde attributes aren't compatible
 //! with this, hence this separate internal representation.
 
 use crate::node_types::{Block, BlockHash, BlockNumber, NodeDetails};
@@ -60,6 +60,7 @@ pub enum Payload {
     BlockImport(Block),
     NotifyFinalized(Finalized),
     AfgAuthoritySet(AfgAuthoritySet),
+    HwBench(NodeHwBench),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -89,8 +90,14 @@ pub struct Finalized {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AfgAuthoritySet {
     pub authority_id: Box<str>,
-    pub authorities: Box<str>,
-    pub authority_set_id: Box<str>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct NodeHwBench {
+    pub cpu_hashrate_score: u64,
+    pub memory_memcpy_score: u64,
+    pub disk_sequential_write_score: Option<u64>,
+    pub disk_random_write_score: Option<u64>,
 }
 
 impl Payload {
@@ -145,9 +152,14 @@ mod tests {
                     name: "foo".into(),
                     implementation: "foo".into(),
                     version: "foo".into(),
+                    target_arch: Some("x86_64".into()),
+                    target_os: Some("linux".into()),
+                    target_env: Some("env".into()),
                     validator: None,
                     network_id: ArrayString::new(),
                     startup_time: None,
+                    sysinfo: None,
+                    ip: Some("127.0.0.1".into()),
                 },
             }),
         });
@@ -194,8 +206,6 @@ mod tests {
         bincode_can_serialize_and_deserialize(NodeMessage::V1 {
             payload: Payload::AfgAuthoritySet(AfgAuthoritySet {
                 authority_id: "foo".into(),
-                authorities: "foo".into(),
-                authority_set_id: "foo".into(),
             }),
         });
     }

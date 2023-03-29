@@ -16,8 +16,8 @@
 
 use super::aggregator::ConnId;
 use crate::feed_message::{self, FeedMessageSerializer};
-use crate::find_location;
 use crate::state::{self, NodeId, State};
+use crate::{find_location, AggregatorOpts};
 use bimap::BiMap;
 use common::{
     internal_messages::{self, MuteReason, ShardNodeId},
@@ -30,10 +30,7 @@ use std::sync::{
     atomic::{AtomicU64, Ordering},
     Arc,
 };
-use std::{
-    net::{IpAddr, Ipv4Addr},
-    str::FromStr,
-};
+use std::{net::IpAddr, str::FromStr};
 
 /// Incoming messages come via subscriptions, and end up looking like this.
 #[derive(Clone, Debug)]
@@ -147,7 +144,7 @@ impl FromStr for FromFeedWebsocket {
     }
 }
 
-/// The aggregator can these messages back to a feed connection.
+/// The aggregator can send these messages back to a feed connection.
 #[derive(Clone, Debug)]
 pub enum ToFeedWebsocket {
     Bytes(bytes::Bytes),
@@ -171,29 +168,29 @@ pub struct InnerLoop {
     chain_to_feed_conn_ids: MultiMapUnique<BlockHash, ConnId>,
 
     /// Send messages here to make geographical location requests.
-    tx_to_locator: flume::Sender<(NodeId, Ipv4Addr)>,
+    tx_to_locator: flume::Sender<(NodeId, IpAddr)>,
 
     /// How big can the queue of messages coming in to the aggregator get before messages
     /// are prioritised and dropped to try and get back on track.
     max_queue_len: usize,
+
+    /// Flag to expose the node's details (IP address, SysInfo, HwBench) of all connected
+    /// nodes to the feed subscribers.
+    expose_node_details: bool,
 }
 
 impl InnerLoop {
     /// Create a new inner loop handler with the various state it needs.
-    pub fn new(
-        tx_to_locator: flume::Sender<(NodeId, Ipv4Addr)>,
-        denylist: Vec<String>,
-        max_queue_len: usize,
-        max_third_party_nodes: usize,
-    ) -> Self {
+    pub fn new(tx_to_locator: flume::Sender<(NodeId, IpAddr)>, opts: AggregatorOpts) -> Self {
         InnerLoop {
-            node_state: State::new(denylist, max_third_party_nodes),
+            node_state: State::new(opts.denylist, opts.max_third_party_nodes),
             node_ids: BiMap::new(),
             feed_channels: HashMap::new(),
             shard_channels: HashMap::new(),
             chain_to_feed_conn_ids: MultiMapUnique::new(),
             tx_to_locator,
-            max_queue_len,
+            max_queue_len: opts.max_queue_len,
+            expose_node_details: opts.expose_node_details,
         }
     }
 
@@ -252,7 +249,7 @@ impl InnerLoop {
             }
 
             if let Err(e) = metered_tx.send(msg) {
-                log::error!("Cannot send message into aggregator: {}", e);
+                log::error!("Cannot send message into aggregator: {e}");
                 break;
             }
         }
@@ -326,9 +323,11 @@ impl InnerLoop {
             FromShardWebsocket::Add {
                 local_id,
                 ip,
-                node,
+                mut node,
                 genesis_hash,
             } => {
+                // Conditionally modify the node's details to include the IP address.
+                node.ip = self.expose_node_details.then_some(ip.to_string().into());
                 match self.node_state.add_node(genesis_hash, node) {
                     state::AddNodeResult::ChainOnDenyList => {
                         if let Some(shard_conn) = self.shard_channels.get_mut(&shard_conn_id) {
@@ -362,6 +361,7 @@ impl InnerLoop {
                         feed_messages_for_chain.push(feed_message::AddedNode(
                             node_id.get_chain_node_id().into(),
                             &details.node,
+                            self.expose_node_details,
                         ));
                         self.finalize_and_broadcast_to_chain_feeds(
                             &genesis_hash,
@@ -379,11 +379,8 @@ impl InnerLoop {
                         ));
                         self.finalize_and_broadcast_to_all_feeds(feed_messages_for_all);
 
-                        // Ask for the grographical location of the node.
-                        // Currently we only geographically locate IPV4 addresses so ignore IPV6.
-                        if let IpAddr::V4(ip_v4) = ip {
-                            let _ = self.tx_to_locator.send((node_id, ip_v4));
-                        }
+                        // Ask for the geographical location of the node.
+                        let _ = self.tx_to_locator.send((node_id, ip));
                     }
                 }
             }
@@ -391,10 +388,11 @@ impl InnerLoop {
                 let node_id = match self.node_ids.remove_by_right(&(shard_conn_id, local_id)) {
                     Some((node_id, _)) => node_id,
                     None => {
-                        log::error!(
-                            "Cannot find ID for node with shard/connectionId of {:?}/{:?}",
-                            shard_conn_id,
-                            local_id
+                        // It's possible that some race between removing and disconnecting shards might lead to
+                        // more than one remove message for the same node. This isn't really a problem, but we
+                        // hope it won't happen so make a note if it does:
+                        log::debug!(
+                            "Remove: Cannot find ID for node with shard/connectionId of {shard_conn_id:?}/{local_id:?}"
                         );
                         return;
                     }
@@ -406,17 +404,19 @@ impl InnerLoop {
                     Some(id) => *id,
                     None => {
                         log::error!(
-                            "Cannot find ID for node with shard/connectionId of {:?}/{:?}",
-                            shard_conn_id,
-                            local_id
+                            "Update: Cannot find ID for node with shard/connectionId of {shard_conn_id:?}/{local_id:?}"
                         );
                         return;
                     }
                 };
 
                 let mut feed_message_serializer = FeedMessageSerializer::new();
-                self.node_state
-                    .update_node(node_id, payload, &mut feed_message_serializer);
+                self.node_state.update_node(
+                    node_id,
+                    payload,
+                    &mut feed_message_serializer,
+                    self.expose_node_details,
+                );
 
                 if let Some(chain) = self.node_state.get_chain_by_node_id(node_id) {
                     let genesis_hash = chain.genesis_hash();
@@ -514,6 +514,7 @@ impl InnerLoop {
                     new_chain.finalized_block().height,
                     new_chain.finalized_block().hash,
                 ));
+                feed_serializer.push(feed_message::ChainStatsUpdate(new_chain.stats()));
                 if let Some(bytes) = feed_serializer.into_finalized() {
                     let _ = feed_channel.send(ToFeedWebsocket::Bytes(bytes));
                 }
@@ -536,7 +537,11 @@ impl InnerLoop {
                             .iter()
                             .filter_map(|&(idx, n)| n.as_ref().map(|n| (idx, n)))
                         {
-                            feed_serializer.push(feed_message::AddedNode(node_id, node));
+                            feed_serializer.push(feed_message::AddedNode(
+                                node_id,
+                                node,
+                                self.expose_node_details,
+                            ));
                             feed_serializer.push(feed_message::FinalizedBlock(
                                 node_id,
                                 node.finalized().height,
@@ -553,7 +558,7 @@ impl InnerLoop {
                     let _ = feed_channel.send(ToFeedWebsocket::Bytes(bytes));
                 }
 
-                // Actually make a note of the new chain subsciption:
+                // Actually make a note of the new chain subscription:
                 let new_genesis_hash = new_chain.genesis_hash();
                 self.chain_to_feed_conn_ids
                     .insert(new_genesis_hash, feed_conn_id);
@@ -610,7 +615,7 @@ impl InnerLoop {
         let removed_details = match self.node_state.remove_node(node_id) {
             Some(remove_details) => remove_details,
             None => {
-                log::error!("Could not find node {:?}", node_id);
+                log::error!("Could not find node {node_id:?}");
                 return;
             }
         };

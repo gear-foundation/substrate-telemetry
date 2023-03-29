@@ -1,5 +1,5 @@
 // Source code for the Substrate Telemetry Server.
-// Copyright (C) 2021 Parity Technologies (UK) Ltd.
+// Copyright (C) 2023 Parity Technologies (UK) Ltd.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -237,31 +237,24 @@ export function bindState(bind: React.Component, state: State): Update {
   };
 }
 
-export namespace State {
-  export interface Settings {
-    location: boolean;
-    validator: boolean;
-    implementation: boolean;
-    networkId: boolean;
-    peers: boolean;
-    txs: boolean;
-    upload: boolean;
-    download: boolean;
-    stateCacheSize: boolean;
-    blocknumber: boolean;
-    blockhash: boolean;
-    finalized: boolean;
-    finalizedhash: boolean;
-    blocktime: boolean;
-    blockpropagation: boolean;
-    blocklasttime: boolean;
-    uptime: boolean;
-  }
-
-  export interface SortBy {
-    column: string;
-    reverse: boolean;
-  }
+export interface StateSettings {
+  location: boolean;
+  validator: boolean;
+  implementation: boolean;
+  networkId: boolean;
+  peers: boolean;
+  txs: boolean;
+  upload: boolean;
+  download: boolean;
+  stateCacheSize: boolean;
+  blocknumber: boolean;
+  blockhash: boolean;
+  finalized: boolean;
+  finalizedhash: boolean;
+  blocktime: boolean;
+  blockpropagation: boolean;
+  blocklasttime: boolean;
+  uptime: boolean;
 }
 
 export interface State {
@@ -275,10 +268,11 @@ export interface State {
   subscribed: Maybe<Types.GenesisHash>;
   chains: Map<Types.GenesisHash, ChainData>;
   nodes: SortedCollection<Node>;
-  settings: Readonly<State.Settings>;
+  settings: Readonly<StateSettings>;
   pins: Readonly<Set<Types.NodeName>>;
   sortBy: Readonly<Maybe<number>>;
   selectedColumns: Column[];
+  chainStats: Maybe<Types.ChainStats>;
 }
 
 export type Update = <K extends keyof State>(

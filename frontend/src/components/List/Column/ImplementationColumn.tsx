@@ -1,5 +1,5 @@
 // Source code for the Substrate Telemetry Server.
-// Copyright (C) 2021 Parity Technologies (UK) Ltd.
+// Copyright (C) 2023 Parity Technologies (UK) Ltd.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import * as React from 'react';
-import { Column } from './';
+import { ColumnProps } from './';
 import { Node } from '../../../state';
 import { Tooltip, Icon } from '../../';
 import icon from '../../../icons/terminal.svg';
@@ -33,6 +33,7 @@ import crabIcon from '../../../icons/crab.svg';
 import darwiniaIcon from '../../../icons/darwinia.svg';
 import turingIcon from '../../../icons/turingnetwork.svg';
 import dothereumIcon from '../../../icons/dothereum.svg';
+import kagomeIcon from '../../../icons/kagome.svg';
 import katalchainIcon from '../../../icons/katalchain.svg';
 import bifrostIcon from '../../../icons/bifrost.svg';
 import totemIcon from '../../../icons/totem.svg';
@@ -57,6 +58,7 @@ const ICONS = {
   Darwinia: darwiniaIcon,
   'turing-node': turingIcon,
   dothereum: dothereumIcon,
+  'Kagome Node': kagomeIcon,
   katalchain: katalchainIcon,
   'bifrost-node': bifrostIcon,
   'totem-meccano-node': totemIcon,
@@ -67,7 +69,7 @@ const ICONS = {
 };
 const SEMVER_PATTERN = /^\d+\.\d+\.\d+/;
 
-export class ImplementationColumn extends React.Component<Column.Props, {}> {
+export class ImplementationColumn extends React.Component<ColumnProps> {
   public static readonly label = 'Implementation';
   public static readonly icon = icon;
   public static readonly width = 90;
@@ -78,7 +80,7 @@ export class ImplementationColumn extends React.Component<Column.Props, {}> {
   private implementation: string;
   private version: string;
 
-  public shouldComponentUpdate(nextProps: Column.Props) {
+  public shouldComponentUpdate(nextProps: ColumnProps) {
     if (this.props.node === nextProps.node) {
       // Implementation can't change unless we got a new node
       return false;

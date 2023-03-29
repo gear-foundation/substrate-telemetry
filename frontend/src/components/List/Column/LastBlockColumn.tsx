@@ -1,5 +1,5 @@
 // Source code for the Substrate Telemetry Server.
-// Copyright (C) 2021 Parity Technologies (UK) Ltd.
+// Copyright (C) 2023 Parity Technologies (UK) Ltd.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -15,12 +15,12 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import * as React from 'react';
-import { Column } from './';
+import { ColumnProps } from './';
 import { Node } from '../../../state';
 import { Ago } from '../../';
 import icon from '../../../icons/watch.svg';
 
-export class LastBlockColumn extends React.Component<Column.Props, {}> {
+export class LastBlockColumn extends React.Component<ColumnProps> {
   public static readonly label = 'Last Block Time';
   public static readonly icon = icon;
   public static readonly width = 100;
@@ -30,7 +30,7 @@ export class LastBlockColumn extends React.Component<Column.Props, {}> {
 
   private data = 0;
 
-  public shouldComponentUpdate(nextProps: Column.Props) {
+  public shouldComponentUpdate(nextProps: ColumnProps) {
     return this.data !== nextProps.node.blockTimestamp;
   }
 

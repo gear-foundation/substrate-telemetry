@@ -1,5 +1,5 @@
 // Source code for the Substrate Telemetry Server.
-// Copyright (C) 2021 Parity Technologies (UK) Ltd.
+// Copyright (C) 2023 Parity Technologies (UK) Ltd.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -16,12 +16,12 @@
 
 import * as React from 'react';
 import { Maybe } from '../../../common';
-import { Column } from './';
+import { ColumnProps } from './';
 import { Node } from '../../../state';
 import { Truncate, Tooltip } from '../../';
 import icon from '../../../icons/location.svg';
 
-export class LocationColumn extends React.Component<Column.Props, {}> {
+export class LocationColumn extends React.Component<ColumnProps> {
   public static readonly label = 'Location';
   public static readonly icon = icon;
   public static readonly width = 140;
@@ -30,7 +30,7 @@ export class LocationColumn extends React.Component<Column.Props, {}> {
 
   private data: Maybe<string>;
 
-  public shouldComponentUpdate(nextProps: Column.Props) {
+  public shouldComponentUpdate(nextProps: ColumnProps) {
     return this.data !== nextProps.node.city;
   }
 

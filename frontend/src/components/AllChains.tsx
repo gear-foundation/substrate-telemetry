@@ -1,5 +1,5 @@
 // Source code for the Substrate Telemetry Server.
-// Copyright (C) 2021 Parity Technologies (UK) Ltd.
+// Copyright (C) 2023 Parity Technologies (UK) Ltd.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,15 +21,13 @@ import { ChainData } from '../state';
 
 import './AllChains.css';
 
-export namespace AllChains {
-  export interface Props {
-    chains: ChainData[];
-    subscribed: Maybe<Types.GenesisHash>;
-    connection: Promise<Connection>;
-  }
+interface AllChainsProps {
+  chains: ChainData[];
+  subscribed: Maybe<Types.GenesisHash>;
+  connection: Promise<Connection>;
 }
 
-export function AllChains(props: AllChains.Props) {
+export function AllChains(props: AllChainsProps) {
   const { chains, subscribed, connection } = props;
   const [filterText, setFilterText] = React.useState('');
   const [sortBy, setSortBy] = React.useState(SortBy.NumberOfNodes);
