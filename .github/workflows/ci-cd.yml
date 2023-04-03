@@ -1,4 +1,4 @@
-name: Build and Deploy Frontend to k8s
+name: Build and Deploy Backend & Frontend to k8s
 
 on:
   push:
@@ -13,9 +13,34 @@ env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
   KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
   KUBE_NAMESPACE: substrate-telemetry
+  KUBE_DEPLOYMENT: telemetry-fullstack
 
 jobs:
-  build-and-push-image:
+  build-and-push-backend:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@master
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@master
+        with:
+          context: backend
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend
+
+  build-and-push-frontend:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -40,18 +65,18 @@ jobs:
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend
 
   deploy-to-k8s-aws: 
-    needs: [build-and-push-image]
+    needs: [build-and-push-backend, build-and-push-frontend]
     runs-on: ubuntu-latest
     
     steps:
-      - name: Configure AWS credentials                          
-        uses: aws-actions/configure-aws-credentials@v1           
-        with:                                                    
-          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}        
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Deploy to k8s                               
-        uses: sergeyfilyanin/kubectl-aws-eks@master                            
-        with:                                                            
-          args: rollout restart deployment telemetry-frontend -n $KUBE_NAMESPACE
+      - name: Deploy to k8s
+        uses: sergeyfilyanin/kubectl-aws-eks@master
+        with:
+          args: rollout restart deployment $KUBE_DEPLOYMENT -n $KUBE_NAMESPACE
