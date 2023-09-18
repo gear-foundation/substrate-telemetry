@@ -80,7 +80,7 @@ struct Opts {
     #[structopt(long)]
     aggregator_queue_len: Option<usize>,
     /// How many nodes from third party chains are allowed to connect before we prevent connections from them.
-    #[structopt(long, default_value = "7000")]
+    #[structopt(long, default_value = "3000")]
     max_third_party_nodes: usize,
     /// Flag to expose the node's details (IP address, SysInfo, HwBench) of all connected
     /// nodes to the feed subscribers.
